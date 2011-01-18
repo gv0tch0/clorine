@@ -1,13 +1,20 @@
-(ns rn.clorine.core
+(ns 
+  ^{:doc "Clorine: Purified Database Connection Pool Management"
+    :authors "Kyle Burton <kyle.burton@gmail.com>, Paul Santa Clara, Josh Crean"}
+  rn.clorine.core
   (:require [clojure.contrib.pprint   :as pp]
-            [clojure.contrib.sql      :as sql]
-            [rn-db.core      :as db])
+            [clojure.contrib.sql      :as sql])
   (:import [org.apache.commons.dbcp  BasicDataSource]))
 
-(defonce *connection-registry* (ref {}))
+(defonce 
+  ^{:doc  "Package level connection info registry."
+    :added "1.0.0"}
+  *connection-registry* (ref {}))
 
-(def *curr-thread-connections* nil)
-
+(def 
+  ^{:doc "Thread local mapping of registered database configuration name to opened connection."
+    :added "1.0.0"}
+  *curr-thread-connections* nil)
 
 (defn get-connection [conn-name]
   (if-let [conn (get @*curr-thread-connections* conn-name)]
