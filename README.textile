@@ -1,17 +1,57 @@
-# clorine
+h1. Clorine
 
-FIXME: write description
+Purified Database Connection Pool Management
 
-## Usage
+@clojure.contrib.sql@, and @clojureql@ are libraries for abstracting away the "JDBC":http://en.wikipedia.org/wiki/Java_Database_Connectivity api making it easier to work with SQL databases by simplyfying the mechanics of working with queries and their data.
 
-FIXME: write
+Both libraries have functions for creating connections to your databse (e.g. @with-connection@), but do not help you in managing those connections.  You can use connection pool libraries (such as the "Jakarta DBCP":http://commons.apache.org/dbcp/) with @clojure.contrib.sql@ by specifying it as a @:datasource@ but you must still take care when creating or pulling those connections out of the pool.  If you have a concurrent application where a thread of execution grabs more than 1 connection from the same pool, the pool can become exhausted and deadlock can occur.  Which is what happend to us and lead to the creation of this library.
 
-## Installation
+Clorine introduces a registry of database connection configurations and pools.  These pools are then managed by Clorine's @with-connection@ macro (which can be used as @clojure.contrib.sql@'s is used) - where you specify a database connection by its registered name instead of a map of parameters.  Clorine then ensures that a given connection to a given database is a singleton - within the context of a given thread.  Threads are protected from accidentally sharing a specific connection and a given thread can not establish (or pull from the pool) more than once to a given database (based on the registered name).
 
-FIXME: write
 
-## License
+h1. Usage
 
-Copyright (C) 2010 FIXME
+pre.    (ns your-namespace
+      (require [rn.clorine :as cl]
+               [clojure.contrib.sql :as sql]))
+    
+pre.    (defn myfunc [skunum storenum]
+      (cl/with-connection :inventory
+        (sql/with-query-results rs ["SELECT * FROM store_inventory where sku = ? and store_num = ?" skunum storenum]
+          (doseq [rec *rs*]
+            (prn (format "Item: %s" rec))))))
+    
+pre.    (defn main []
+      (cl/register-conneciton! :inventory 
+       {:driver-class-name   "org.postgresql.Driver"
+        :user                "db-username"
+        :password            "db-password"
+        :url                 "jdbc:postgresql://your-database-host:5432/your-database-name"
+        :max-active          8}
+       (myfunc "1" "PA19101-A7"))
+
+
+h1. Installation
+
+h2. Maven 
+
+<pre>
+  <dependencies>
+    <dependency>
+      <groupId>com.relaynetwork</groupId>
+      <artifactId>clorine</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    ...
+  </dependencies>
+</pre>
+
+h2. Clojars (Leiningen)
+
+pre.  [com.relaynetwork/clorine "1.0.0"]
+
+h1. License
+
+Copyright (C) 2011 RelayNetwork
 
 Distributed under the Eclipse Public License, the same as Clojure.
