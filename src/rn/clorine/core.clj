@@ -91,7 +91,7 @@
          (catch Exception e
           (reset! ex e)))
         (cond (not @ex)
-              result
+              @result
 
               (retryable-error? @ex)
               (recur (dec retries-left) (conj errors @ex))
