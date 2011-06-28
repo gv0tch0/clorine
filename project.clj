@@ -1,4 +1,4 @@
-(defproject com.relaynetwork/clorine "1.0.5"
+(defproject com.relaynetwork/clorine "1.0.6-SNAPSHOT"
   :description "Clorine"
   :license {:name "Eclipse Public License - v 1.0"
             :url "http://www.eclipse.org/legal/epl-v10.html"
