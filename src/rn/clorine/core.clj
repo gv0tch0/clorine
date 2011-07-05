@@ -30,7 +30,7 @@
                                               (vec (keys @*connection-registry*))))))
   (if-let [conn (get @*curr-thread-connections* conn-name)]
     [conn false]
-    (let [new-connection (.getConnection (get @*connection-registry* conn-name))]
+    (let [new-connection (.getConnection #^BasicDataSource (get @*connection-registry* conn-name))]
       (swap! *curr-thread-connections* assoc conn-name new-connection)
       [new-connection true])))
 
