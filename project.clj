@@ -6,7 +6,7 @@
             :comments "same as Clojure"}
   :jvm-opts ["-Xmx512M"]
   :aot      [rn.clorine.retries-exhausted-exception]
-  :dev-dependencies [[swank-clojure "1.2.1"]
+  :dev-dependencies [[swank-clojure "1.4.0-SNAPSHOT"]
                      [org.xerial/sqlite-jdbc  "3.6.20"]]
   :dependencies [[org.clojure/clojure "1.2.0"]
                  [org.clojure/clojure-contrib "1.2.0"]
