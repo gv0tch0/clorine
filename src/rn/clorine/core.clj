@@ -48,7 +48,7 @@
 (defn with-datasource* [conn-name func]
   (let [helper-fn
         #(let [[ds we-opened-it] (get-datasource conn-name)]
-           (binding [*datasource* ds]
+           (binding [*datasource* {:datasource ds}]
              (func)))]
     (if (nil? *curr-thread-connections*)
       (binding [*curr-thread-connections* (atom {})]
