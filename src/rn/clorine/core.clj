@@ -34,6 +34,27 @@
       (swap! *curr-thread-connections* assoc conn-name new-connection)
       [new-connection true])))
 
+(defn get-datasource [conn-name]
+  (if-not (contains? @*connection-registry* conn-name)
+    (throw (IllegalArgumentException. (format "Error: connection name not registered: %s the following are registered: %s"
+                                              conn-name
+                                              (vec (keys @*connection-registry*))))))
+  (if-let [conn (get @*curr-thread-connections* conn-name)]
+    [conn false]
+    [(get @*connection-registry* conn-name) true]))
+
+(def *datasource* nil)
+
+(defn with-datasource* [conn-name func]
+  (let [helper-fn
+        #(let [[ds we-opened-it] (get-datasource conn-name)]
+           (binding [*datasource* ds]
+             (func)))]
+    (if (nil? *curr-thread-connections*)
+      (binding [*curr-thread-connections* (atom {})]
+        (helper-fn))
+      (helper-fn))))
+
 (defn with-connection* [conn-name func]
   (let [helper-fn
         #(let [[conn we-opened-it] (get-connection conn-name)]
