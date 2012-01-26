@@ -2,11 +2,11 @@ h1. Clorine
 
 Purified Database Connection Pool Management
 
-@clojure.contrib.sql@, and @clojureql@ are libraries for abstracting away the "JDBC":http://en.wikipedia.org/wiki/Java_Database_Connectivity api making it easier to work with SQL databases by simplyfying the mechanics of working with queries and their data.
+@clojure.contrib.sql@, and @clojureql@ are libraries for abstracting away the "JDBC":http://en.wikipedia.org/wiki/Java_Database_Connectivity api making it easier to work with SQL databases by simplifying the mechanics of working with queries and their data.
 
-Both libraries have functions for creating connections to your databse (e.g. @with-connection@), but do not help you in managing those connections.  You can use connection pool libraries (such as the "Jakarta DBCP":http://commons.apache.org/dbcp/) with @clojure.contrib.sql@ by specifying it as a @:datasource@ but you must still take care when creating or pulling those connections out of the pool.  If you have a concurrent application where a thread of execution grabs more than 1 connection from the same pool, the pool can become exhausted and deadlock can occur.  Which is what happend to us and lead to the creation of this library.
+Both libraries have functions for creating connections to your database (e.g. @with-connection@), but do not help you in managing those connections.  You can use connection pool libraries (such as the "Jakarta DBCP":http://commons.apache.org/dbcp/) with @clojure.contrib.sql@ by specifying it as a @:datasource@ but you must still take care when creating or pulling those connections out of the pool.  If you have a concurrent application where a thread of execution grabs more than 1 connection from the same pool, the pool can become exhausted and deadlock can occur.  Which is what happened to us and lead to the creation of this library.
 
-Clorine introduces a registry of database connection configurations and pools.  These pools are then managed by Clorine's @with-connection@ macro (which can be used as @clojure.contrib.sql@'s is used) - where you specify a database connection by its registered name instead of a map of parameters.  Clorine then ensures that a given connection to a given database is a singleton within the context of a given thread.  Threads are protected from accidentally sharing a specific connection and a given thread can not establish (or pull from the pool) more than once to a given database (based on the registered name).  On subsequent requests for a database connection, the same database connection is returned.  This is true _even if your code has nested calls to @with-connection@_.  In one sense this can free you to a certin extent from having to carefuly decide where to place @with-connection@ - the outermost instance will be the one that pulls the connection from the pool while any inner ones will be re-using that connection.  Not quite dependency injection, though the connection you need will be available to you when you need it.
+Clorine introduces a registry of database connection configurations and pools.  These pools are then managed by Clorine's @with-connection@ macro (which can be used as @clojure.contrib.sql@'s is used) - where you specify a database connection by its registered name instead of a map of parameters.  Clorine then ensures that a given connection to a given database is a singleton within the context of a given thread.  Threads are protected from accidentally sharing a specific connection and a given thread can not establish (or pull from the pool) more than once to a given database (based on the registered name).  On subsequent requests for a database connection, the same database connection is returned.  This is true _even if your code has nested calls to @with-connection@_.  In one sense this can free you to a certain extent from having to carefully decide where to place @with-connection@ - the outermost instance will be the one that pulls the connection from the pool while any inner ones will be re-using that connection.  Not quite dependency injection, though the connection you need will be available to you when you need it.
 
 Clorine uses the Jakarta DBCP @org.apache.commons.dbcp.BasicDataSource@ as its pooling implementation.
 
@@ -23,7 +23,7 @@ pre.    (defn myfunc [skunum storenum]
             (prn (format "Item: %s" rec))))))
     
 pre.    (defn main []
-      (cl/register-conneciton! :inventory 
+      (cl/register-connection! :inventory
        {:driver-class-name   "org.postgresql.Driver"
         :user                "db-username"
         :password            "db-password"
@@ -44,37 +44,37 @@ Once a connection has been registered and its pool has been established, any out
 
 <pre>
    (defn get-remaining-inventory [item-sku store-number]
-      ;; In the example code, this is a nested with-conneciton, which will
-      ;; return the same :inventory database conneciton instance the outer
-      ;; with-conneciton did in the record-restock-orders function
-     (with-conneciton :inventory
+      ;; In the example code, this is a nested with-connection, which will
+      ;; return the same :inventory database connection instance the outer
+      ;; with-connection did in the record-restock-orders function
+     (with-connection :inventory
        (sql/with-query-results rs ["SELECT count FROM store_inventory where sku = ? and store_num = ?" skunum storenum]
           (:count (first rs)))))
                      
    (defn get-items-sold [item-sku store-number date]
-      ;; In the example code, this is a nested with-conneciton, which will
-      ;; return the same :inventory database conneciton instance the outer
-      ;; with-conneciton did in the record-restock-orders function
-      (with-conneciton :inventory
+      ;; In the example code, this is a nested with-connection, which will
+      ;; return the same :inventory database connection instance the outer
+      ;; with-connection did in the record-restock-orders function
+      (with-connection :inventory
        (sql/with-query-results rs ["SELECT count(*) FROM store_items_sold where sku = ? and store_num = ? and date = ?" skunum storenum date]
           (:count (first rs)))))
 
    (defn record-restock-orders [item-sku store-number date]
      ;; This is the outermost with-connection.  It is where the connection to
-     ;; the inventory database is establishd (pulled from the pool) and defines
+     ;; the inventory database is established (pulled from the pool) and defines
      ;; the scope of the connection being open (it is closed when this scope is
      ;; left, placing the connection back into the pool).
-     (with-conneciton :inventory
+     (with-connection :inventory
        (let [items-sold      (get-items-sold item-sku store-number date)
              items-remaining (get-remaining-inventory item-sku store-number)]
-         (sql/do-prepared "INSERT INTO restock_items (sku,sotore_num,order_date) values (?,?,current_date)"
+         (sql/do-prepared "INSERT INTO restock_items (sku,store_num,order_date) values (?,?,current_date)"
                           [item-sku (if (> items-sold items-remaining)
                                         (* items-sold 2)
                                         items-sold]))))
 
     (defn main []
       ;; a test connection will be established when the :inventory connection is registered
-      (cl/register-conneciton! :inventory 
+      (cl/register-connection! :inventory
         {:driver-class-name   "org.postgresql.Driver"
          :user                "db-username"
          :password            "db-password"
